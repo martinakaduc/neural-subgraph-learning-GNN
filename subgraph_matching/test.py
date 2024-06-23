@@ -90,7 +90,7 @@ def validation(args, model, data_source, logger, batch_n, epoch, verbose=False):
     end_time = time.time()
     pred = torch.cat(all_preds, dim=-1)
     labels = torch.cat(all_labels, dim=-1)
-    raw_pred = torch.sigmoid(torch.cat(all_raw_preds, dim=-1))
+    raw_pred = torch.cat(all_raw_preds, dim=-1)
     test_time = (end_time - start_time) / len(labels)
     labels = labels.detach().cpu().numpy()
     raw_pred = raw_pred.detach().cpu().numpy()
@@ -98,45 +98,25 @@ def validation(args, model, data_source, logger, batch_n, epoch, verbose=False):
     result_rows = []
     
     if args.test:
-        for conf_step in [
-            0.5,
-            0.6,
-            0.7,
-            0.8,
-            0.9,
-            0.91,
-            0.92,
-            0.93,
-            0.94,
-            0.95,
-            0.96,
-            0.97,
-            0.98,
-            0.99,
-        ]:
-            test_pred_by_conf = raw_pred.copy()
-            test_pred_by_conf[test_pred_by_conf < conf_step] = 0
-            test_pred_by_conf[test_pred_by_conf > 0] = 1
+        test_roc = roc_auc_score(labels, pred)
+        test_acc = accuracy_score(labels, pred)
+        test_pre = precision_score(labels, pred)
+        test_rec = recall_score(labels, pred)
+        test_f1s = f1_score(labels, pred)
+        test_prc = average_precision_score(labels, pred)
         
-            test_roc = roc_auc_score(labels, test_pred_by_conf)
-            test_acc = accuracy_score(labels, test_pred_by_conf)
-            test_pre = precision_score(labels, test_pred_by_conf)
-            test_rec = recall_score(labels, test_pred_by_conf)
-            test_f1s = f1_score(labels, test_pred_by_conf)
-            test_prc = average_precision_score(labels, test_pred_by_conf)
-            
-            result_rows.append(
-                    [
-                        conf_step,
-                        test_time,
-                        test_roc,
-                        test_prc,
-                        test_pre,
-                        test_rec,
-                        test_f1s,
-                        test_acc,
-                    ]
-                )
+        result_rows.append(
+            [
+                0.5,
+                test_time,
+                test_roc,
+                test_prc,
+                test_pre,
+                test_rec,
+                test_f1s,
+                test_acc,
+            ]
+        )
             
         result_file = args.dataset.split("/")[-1] + ".csv"
         with open(os.path.join(args.result_dir, result_file), "w", encoding="utf-8") as f:
