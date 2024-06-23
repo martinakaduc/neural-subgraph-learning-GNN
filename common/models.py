@@ -230,6 +230,9 @@ class SAGEConv(pyg_nn.MessagePassing):
         """
         #edge_index, edge_weight = add_remaining_self_loops(
         #    edge_index, edge_weight, 1, x.size(self.node_dim))
+        if edge_weight is None:
+            edge_weight = torch.ones((edge_index.size(1),), dtype=edge_index.dtype,
+                                 device=edge_index.device)
         edge_index, _ = pyg_utils.remove_self_loops(edge_index)
 
         return self.propagate(edge_index, size=size, x=x,
