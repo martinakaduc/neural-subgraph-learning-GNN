@@ -90,7 +90,7 @@ def validation(args, model, data_source, logger, batch_n, epoch, verbose=False):
     end_time = time.time()
     pred = torch.cat(all_preds, dim=-1)
     labels = torch.cat(all_labels, dim=-1)
-    raw_pred = torch.cat(all_raw_preds, dim=-1)
+    raw_pred = torch.sigmoid(torch.cat(all_raw_preds, dim=-1))
     test_time = (end_time - start_time) / len(labels)
     labels = labels.detach().cpu().numpy()
     raw_pred = raw_pred.detach().cpu().numpy()
