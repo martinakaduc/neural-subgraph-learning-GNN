@@ -1,10 +1,19 @@
 from common import utils
 from collections import defaultdict
 from datetime import datetime
-from sklearn.metrics import roc_auc_score, confusion_matrix
-from sklearn.metrics import precision_recall_curve, average_precision_score
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+    precision_recall_curve
+)
+import os
 import torch
 import time
+import numpy as np
 from tqdm import tqdm
 
 USE_ORCA_FEATS = False # whether to use orca motif counts along with embeddings
@@ -82,47 +91,87 @@ def validation(args, model, data_source, logger, batch_n, epoch, verbose=False):
     pred = torch.cat(all_preds, dim=-1)
     labels = torch.cat(all_labels, dim=-1)
     raw_pred = torch.cat(all_raw_preds, dim=-1)
-    time_per_query = (end_time - start_time) / len(labels)
-    acc = torch.mean((pred == labels).type(torch.float))
-    prec = (torch.sum(pred * labels).item() / torch.sum(pred).item() if
-        torch.sum(pred) > 0 else float("NaN"))
-    recall = (torch.sum(pred * labels).item() /
-        torch.sum(labels).item() if torch.sum(labels) > 0 else
-        float("NaN"))
+    test_time = (end_time - start_time) / len(labels)
     labels = labels.detach().cpu().numpy()
     raw_pred = raw_pred.detach().cpu().numpy()
     pred = pred.detach().cpu().numpy()
-    auroc = roc_auc_score(labels, raw_pred)
-    avg_prec = average_precision_score(labels, raw_pred)
-    tn, fp, fn, tp = confusion_matrix(labels, pred).ravel()
+    result_rows = []
+    
+    if args.test:
+        for conf_step in [
+            0.5,
+            0.6,
+            0.7,
+            0.8,
+            0.9,
+            0.91,
+            0.92,
+            0.93,
+            0.94,
+            0.95,
+            0.96,
+            0.97,
+            0.98,
+            0.99,
+        ]:
+            test_pred_by_conf = pred.copy()
+            test_pred_by_conf[test_pred_by_conf < conf_step] = 0
+            test_pred_by_conf[test_pred_by_conf > 0] = 1
+        
+            test_roc = roc_auc_score(labels, test_pred_by_conf)
+            test_acc = accuracy_score(labels, test_pred_by_conf)
+            test_pre = precision_score(labels, test_pred_by_conf)
+            test_rec = recall_score(labels, test_pred_by_conf)
+            test_f1s = f1_score(labels, test_pred_by_conf)
+            test_prc = average_precision_score(labels, test_pred_by_conf)
+            
+            result_rows.append(
+                    [
+                        conf_step,
+                        test_time,
+                        test_roc,
+                        test_prc,
+                        test_pre,
+                        test_rec,
+                        test_f1s,
+                        test_acc,
+                    ]
+                )
+            
+        result_file = args.dataset.split("/")[-1] + ".csv"
+        with open(os.path.join(args.result_dir, result_file), "w", encoding="utf-8") as f:
+            f.write(
+                "Confident,Execution Time,ROC AUC,PR AUC,Precision,Recall,F1-Score,Accuracy\n"
+            )
+            for row in result_rows:
+                f.write(",".join([str(x) for x in row]))
+                f.write("\n")
+
+    else:
+        test_roc = roc_auc_score(labels, pred)
+        test_acc = accuracy_score(labels, pred)
+        test_f1s = f1_score(labels, pred)
+        test_prc = average_precision_score(labels, pred)
+        
+        print("\n{}".format(str(datetime.now())))
+        print("Validation. Epoch {}. Time: {:.5f}. ROC AUC: {:.5f}. PR AUC: {:.5f}. F1-Score: {:.5f}. Accuracy: {:.5f}".format(
+            epoch, test_time, test_roc, test_prc, test_f1s, test_acc))
+        
+        logger.add_scalar("Accuracy/test", test_acc, batch_n)
+        logger.add_scalar("F1 Score/test", test_f1s, batch_n)
+        logger.add_scalar("AUROC/test", test_roc, batch_n)
+        logger.add_scalar("AvgPrec/test", test_prc, batch_n)
+        print("Saving {}".format(args.model_path))
+        torch.save(model.state_dict(), args.model_path)
+    
     if verbose:
         import matplotlib.pyplot as plt
-        precs, recalls, threshs = precision_recall_curve(labels, raw_pred)
+        precs, recalls, threshs = precision_recall_curve(labels, pred)
         plt.plot(recalls, precs)
         plt.xlabel("Recall")
         plt.ylabel("Precision")
         plt.savefig("plots/precision-recall-curve.png")
         print("Saved PR curve plot in plots/precision-recall-curve.png")
-
-    print("\n{}".format(str(datetime.now())))
-    print("Validation. Epoch {}. Time: {:.5f}. Acc: {:.5f}. "
-        "P: {:.5f}. R: {:.5f}. AUROC: {:.5f}. AP: {:.5f}.\n     "
-        "TN: {}. FP: {}. FN: {}. TP: {}".format(epoch, time_per_query,
-            acc, prec, recall, auroc, avg_prec,
-            tn, fp, fn, tp))
-
-    if not args.test:
-        logger.add_scalar("Accuracy/test", acc, batch_n)
-        logger.add_scalar("Precision/test", prec, batch_n)
-        logger.add_scalar("Recall/test", recall, batch_n)
-        logger.add_scalar("AUROC/test", auroc, batch_n)
-        logger.add_scalar("AvgPrec/test", avg_prec, batch_n)
-        logger.add_scalar("TP/test", tp, batch_n)
-        logger.add_scalar("TN/test", tn, batch_n)
-        logger.add_scalar("FP/test", fp, batch_n)
-        logger.add_scalar("FN/test", fn, batch_n)
-        print("Saving {}".format(args.model_path))
-        torch.save(model.state_dict(), args.model_path)
 
     if verbose:
         conf_mat_examples = defaultdict(list)
