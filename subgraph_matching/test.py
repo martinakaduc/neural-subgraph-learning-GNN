@@ -114,7 +114,7 @@ def validation(args, model, data_source, logger, batch_n, epoch, verbose=False):
             0.98,
             0.99,
         ]:
-            test_pred_by_conf = pred.copy()
+            test_pred_by_conf = raw_pred.copy()
             test_pred_by_conf[test_pred_by_conf < conf_step] = 0
             test_pred_by_conf[test_pred_by_conf > 0] = 1
         
