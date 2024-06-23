@@ -173,24 +173,24 @@ def validation(args, model, data_source, logger, batch_n, epoch, verbose=False):
         plt.savefig("plots/precision-recall-curve.png")
         print("Saved PR curve plot in plots/precision-recall-curve.png")
 
-    if verbose:
-        conf_mat_examples = defaultdict(list)
-        idx = 0
-        for batch_target, batch_neg_target, batch_neg_query in tqdm(zip(*loaders)):
-            pos_a, pos_b, neg_a, neg_b = data_source.gen_batch(batch_target,
-                batch_neg_target, batch_neg_query, train=False)
-            if pos_a:
-                pos_a = pos_a.to(utils.get_device())
-                pos_b = pos_b.to(utils.get_device())
-            if neg_a:
-                neg_a = neg_a.to(utils.get_device())
-                neg_b = neg_b.to(utils.get_device())
-            for list_a, list_b in [(pos_a, pos_b), (neg_a, neg_b)]:
-                if not list_a: continue
-                for a, b in zip(list_a.G, list_b.G):
-                    correct = pred[idx] == labels[idx]
-                    conf_mat_examples[correct, pred[idx]].append((a, b))
-                    idx += 1
+    # if verbose:
+    #     conf_mat_examples = defaultdict(list)
+    #     idx = 0
+    #     for batch_target, batch_neg_target, batch_neg_query in tqdm(zip(*loaders)):
+    #         pos_a, pos_b, neg_a, neg_b = data_source.gen_batch(batch_target,
+    #             batch_neg_target, batch_neg_query, train=False)
+    #         if pos_a:
+    #             pos_a = pos_a.to(utils.get_device())
+    #             pos_b = pos_b.to(utils.get_device())
+    #         if neg_a:
+    #             neg_a = neg_a.to(utils.get_device())
+    #             neg_b = neg_b.to(utils.get_device())
+    #         for list_a, list_b in [(pos_a, pos_b), (neg_a, neg_b)]:
+    #             if not list_a: continue
+    #             for a, b in zip(list_a.G, list_b.G):
+    #                 correct = pred[idx] == labels[idx]
+    #                 conf_mat_examples[correct, pred[idx]].append((a, b))
+    #                 idx += 1
 
 if __name__ == "__main__":
     from subgraph_matching.train import main
