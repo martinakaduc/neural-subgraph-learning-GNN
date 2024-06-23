@@ -436,6 +436,7 @@ class  PreloadedDataSource(DataSource):
 
         with open (os.path.join(self.dataset, "train_keys.pkl"), 'rb') as fp:
             self.train_keys = pickle.load(fp)
+            random.shuffle(self.train_keys)
         if tag is None:
             test_key_file = "test_keys.pkl"
         else:
