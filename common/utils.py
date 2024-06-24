@@ -15,6 +15,15 @@ from tqdm import tqdm
 
 from common import feature_preprocess
 
+def set_seed(seed):
+    random.seed(seed)
+    # torch.backends.cudnn.deterministic=True
+    # torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.cuda.manual_seed_all(seed)
+    
 def sample_neigh(graphs, size):
     ps = np.array([len(g) for g in graphs], dtype=np.float)
     ps /= np.sum(ps)

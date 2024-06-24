@@ -4,7 +4,8 @@ from common import utils
 def parse_encoder(parser, arg_str=None):
     enc_parser = parser.add_argument_group()
     #utils.parse_optimizer(parser)
-
+    enc_parser.add_argument('--seed', type=int,
+                        help='Random seed')
     enc_parser.add_argument('--conv_type', type=str,
                         help='type of convolution')
     enc_parser.add_argument('--method_type', type=str,
@@ -44,7 +45,8 @@ def parse_encoder(parser, arg_str=None):
     enc_parser.add_argument('--tag', type=str,
         help='tag to identify the run')
 
-    enc_parser.set_defaults(conv_type='SAGE',
+    enc_parser.set_defaults(seed=42,
+                        conv_type='SAGE',
                         method_type='order',
                         dataset='syn',
                         n_layers=8,

@@ -245,6 +245,8 @@ def main(force_test=False):
 
     if force_test:
         args.test = True
+        
+    utils.set_seed(args.seed)
 
     # Currently due to parallelism in multi-gpu training, this code performs
     # sequential hyperparameter tuning.
