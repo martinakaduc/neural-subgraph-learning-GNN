@@ -141,8 +141,7 @@ def validation(args, model, data_source, logger, batch_n, epoch, verbose=False):
         logger.add_scalar("F1 Score/test", test_f1s, batch_n)
         logger.add_scalar("AUROC/test", test_roc, batch_n)
         logger.add_scalar("AvgPrec/test", test_prc, batch_n)
-        print("Saving {}".format(args.model_path))
-        torch.save(model.state_dict(), args.model_path)
+        return test_acc, test_f1s, test_roc, test_prc
     
     if verbose:
         import matplotlib.pyplot as plt

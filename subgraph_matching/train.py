@@ -200,6 +200,8 @@ def train_loop(args):
         workers.append(worker)
 
     batch_n = 0
+    best_roc = 0
+    early_stop = 0
     for epoch in tqdm(range(args.n_batches // args.eval_interval)):
         for i in range(args.eval_interval):
             in_queue.put(("step", None))
@@ -211,7 +213,20 @@ def train_loop(args):
             logger.add_scalar("Loss/train", train_loss, batch_n)
             logger.add_scalar("Accuracy/train", train_acc, batch_n)
             batch_n += 1
-        validation(args, model, data_source, logger, batch_n, epoch)
+            
+        # Evaluate on test set
+        test_acc, test_f1s, test_roc, test_prc = validation(args, model, data_source, logger, batch_n, epoch)
+        
+        if test_roc > best_roc:
+            best_roc = test_roc
+            early_stop = 0
+            print("Saving {}".format(args.model_path))
+            torch.save(model.state_dict(), args.model_path)
+        else:
+            early_stop += 1
+            if early_stop >= 3:
+                print("Early stopping")
+                break
 
     for i in range(args.n_workers):
         in_queue.put(("done", None))
